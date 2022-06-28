@@ -120,6 +120,8 @@ GTAGS
 
 # ccls
 /.ccls-cache
+#clangd
+/.cache
 
 # auto-generated compilation database
 compile_commands.json

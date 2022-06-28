@@ -1,11 +1,12 @@
 {
   description = "The purely functional package manager";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05-small";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11-small"; #"github:NixOS/nixpkgs/nixos-unstable-small";
   inputs.nixpkgs-regression.url = "github:NixOS/nixpkgs/215d4d0fd80ca5163643b03a33fde804a29cc1e2";
   inputs.lowdown-src = { url = "github:kristapsdz/lowdown"; flake = false; };
+  inputs.mini-compile-commands = { url = "github:danielbarter/mini_compile_commands"; flake = false;};
 
-  outputs = { self, nixpkgs, nixpkgs-regression, lowdown-src }:
+  outputs = { self, nixpkgs, nixpkgs-regression, lowdown-src, mini-compile-commands  }:
 
     let
 
@@ -23,16 +24,14 @@
 
       crossSystems = [ "armv6l-linux" "armv7l-linux" ];
 
-      stdenvs = [ "gccStdenv" "clangStdenv" "clang11Stdenv" "stdenv" "libcxxStdenv" "ccacheStdenv" ];
+      stdenvs = [ "gccStdenv" "clangStdenv" "clang11Stdenv" "clang13Stdenv" "stdenv" "libcxxStdenv" "ccacheStdenv" ];
 
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
       forAllSystemsAndStdenvs = f: forAllSystems (system:
         nixpkgs.lib.listToAttrs
           (map
-            (n:
-            nixpkgs.lib.nameValuePair "${n}Packages" (
-              f system n
-            )) stdenvs
+            (en: nixpkgs.lib.nameValuePair "${en}Packages" (f system en))
+            stdenvs
           )
       );
 
@@ -44,17 +43,19 @@
           (system: stdenv:
             import nixpkgs {
               inherit system;
-              overlays = [
-                (overlayFor (p: p.${stdenv}))
-              ];
+              overlays = [ (overlayFor (p: p.${stdenv})) ];
             }
           );
         in
         # Add the `stdenvPackages` at toplevel, both because these are the ones
         # we want most of the time and for backwards compatibility
         forAllSystems (system: stdenvsPackages.${system} // stdenvsPackages.${system}.stdenvPackages);
+        #nixpkgs.lib.debug.traceSeqN 2 systems systems;
+
 
       commonDeps = { pkgs, isStatic ? false }: with pkgs; rec {
+        ##(p: (p.callPackage mini-compile-commands {}).wrap
+
         # Use "busybox-sandbox-shell" if present,
         # if not (legacy) fallback and hope it's sufficient.
         sh = pkgs.busybox-sandbox-shell or (busybox.override {
@@ -108,7 +109,7 @@
           ++ lib.optionals stdenv.hostPlatform.isLinux [(buildPackages.util-linuxMinimal or buildPackages.utillinuxMinimal)];
 
         buildDeps =
-          [ (curl.override { patchNetrcRegression = true; })
+          [ curl
             bzip2 xz brotli editline
             openssl sqlite
             libarchive
@@ -131,7 +132,7 @@
               enableLargeConfig = true;
             }).overrideAttrs(o: {
               patches = (o.patches or []) ++ [
-                ./boehmgc-coroutine-sp-fallback.diff
+                #./boehmgc-coroutine-sp-fallback.diff
               ];
             }))
             nlohmann_json
@@ -686,15 +687,19 @@
 
       devShells = forAllSystems (system:
         forAllStdenvs (stdenv:
-          with nixpkgsFor.${system};
+          with nixpkgsFor.${system}."${stdenv}Packages";
           with commonDeps { inherit pkgs; };
-          nixpkgsFor.${system}.${stdenv}.mkDerivation {
+          let
+            mini_compile_commands = callPackage mini-compile-commands {};
+            systemStdenv  = mini_compile_commands.wrap nixpkgsFor.${system}."${stdenv}Packages".${stdenv};
+          in
+          systemStdenv.mkDerivation {
             name = "nix";
 
             outputs = [ "out" "dev" "doc" ];
 
             nativeBuildInputs = nativeBuildDeps;
-            buildInputs = buildDeps ++ propagatedDeps ++ awsDeps;
+            buildInputs = buildDeps ++ propagatedDeps ++ awsDeps ++ [ mini_compile_commands.package ];
 
             inherit configureFlags;
 
@@ -713,7 +718,7 @@
               '';
           }
         )
-        // { default = self.devShells.${system}.stdenv; }
+        // { default = self.devShells.${system}.clang13Stdenv; }
       );
 
   };
