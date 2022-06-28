@@ -8,8 +8,10 @@
 #include "progress-bar.hh"
 #include "run.hh"
 
+#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <ostream>
 
 using namespace nix;
 
@@ -113,6 +115,7 @@ struct BuildEnvironment
         for (auto & [name, value] : vars) {
             if (!ignoreVars.count(name)) {
                 if (auto str = std::get_if<String>(&value)) {
+                    std::cout << "exporting var name:" << name << std::endl;
                     out << fmt("%s=%s\n", name, shellEscape(str->value));
                     if (str->exported)
                         out << fmt("export %s\n", name);
@@ -129,6 +132,8 @@ struct BuildEnvironment
                         out << "[" << shellEscape(n) << "]=" << shellEscape(v) << " ";
                     out << ")\n";
                 }
+            } else {
+                std::cout << "env var ignored:" << name << "=" << std::endl;
             }
         }
 
@@ -246,7 +251,7 @@ struct Common : InstallableCommand, MixProfile
         "NIX_LOG_FD",
         "NIX_REMOTE",
         "PPID",
-        "SHELL",
+        //"SHELL",
         "SHELLOPTS",
         "SSL_CERT_FILE", // FIXME: only want to ignore /no-cert-file.crt
         "TEMP",
@@ -475,7 +480,7 @@ struct CmdDevelop : Common, MixEnvironment
         if (verbosity >= lvlDebug)
             script += "set -x\n";
 
-        script += fmt("command rm -f '%s'\n", rcFilePath);
+        //script += fmt("command rm -f '%s'\n", rcFilePath);
 
         if (phase) {
             if (!command.empty())

@@ -1,6 +1,7 @@
 #pragma once
 
 /* A trivial class to run a function at the end of a scope. */
+#include <utility>
 template<typename Fn>
 class Finally
 {

@@ -16,18 +16,34 @@
         "type": "github"
       }
     },
+    "mini-compile-commands": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1668364794,
+        "narHash": "sha256-6NmqQOJmKtX3gtc8pOnJd7yfXIWX89hwdsq0te8/NwY=",
+        "owner": "danielbarter",
+        "repo": "mini_compile_commands",
+        "rev": "a609a8cf98e5ea8cafc624e9a5c96f18229c0996",
+        "type": "github"
+      },
+      "original": {
+        "owner": "danielbarter",
+        "repo": "mini_compile_commands",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1657693803,
-        "narHash": "sha256-G++2CJ9u0E7NNTAi9n5G8TdDmGJXcIjkJ3NF8cetQB8=",
+        "lastModified": 1670231960,
+        "narHash": "sha256-n4eRvyLEddOHozVL61owcMZKDxx/ZruixtH70NS0LxQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "365e1b3a859281cf11b94f87231adeabbdd878a2",
+        "rev": "0b1bb5d28101cbb3fa798f100c618cb17f1632ef",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-22.05-small",
+        "ref": "nixos-22.11-small",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -51,6 +67,7 @@
     "root": {
       "inputs": {
         "lowdown-src": "lowdown-src",
+        "mini-compile-commands": "mini-compile-commands",
         "nixpkgs": "nixpkgs",
         "nixpkgs-regression": "nixpkgs-regression"
       }
