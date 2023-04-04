@@ -33,7 +33,7 @@ makefiles += \
   mk/disable-tests.mk
 endif
 
-OPTIMIZE = 1
+OPTIMIZE = 0
 
 ifeq ($(OPTIMIZE), 1)
   GLOBAL_CXXFLAGS += -O3 $(CXXLTO)

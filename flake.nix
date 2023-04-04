@@ -5,8 +5,9 @@
   inputs.nixpkgs-regression.url = "github:NixOS/nixpkgs/215d4d0fd80ca5163643b03a33fde804a29cc1e2";
   inputs.lowdown-src = { url = "github:kristapsdz/lowdown"; flake = false; };
   inputs.flake-compat = { url = "github:edolstra/flake-compat"; flake = false; };
+  inputs.mini-compile-commands = { url = "github:danielbarter/mini_compile_commands"; flake = false;};
 
-  outputs = { self, nixpkgs, nixpkgs-regression, lowdown-src, flake-compat }:
+  outputs = { self, nixpkgs, nixpkgs-regression, lowdown-src, flake-compat, mini-compile-commands }:
 
     let
       inherit (nixpkgs) lib;
@@ -25,7 +26,7 @@
 
       crossSystems = [ "armv6l-linux" "armv7l-linux" ];
 
-      stdenvs = [ "gccStdenv" "clangStdenv" "clang11Stdenv" "stdenv" "libcxxStdenv" "ccacheStdenv" ];
+      stdenvs = [ "gccStdenv" "clangStdenv" "clang11Stdenv" "stdenv" "libcxxStdenv" "ccacheStdenv" "clang13Stdenv" ];
 
       forAllSystems = lib.genAttrs systems;
 
@@ -685,13 +686,18 @@
       devShells = let
         makeShell = pkgs: stdenv:
           with commonDeps { inherit pkgs; };
-          stdenv.mkDerivation {
+          let
+            mini_compile_commands = pkgs.callPackage mini-compile-commands {};
+            systemStdenv = mini_compile_commands.wrap stdenv;
+          in
+          systemStdenv.mkDerivation {
             name = "nix";
 
             outputs = [ "out" "dev" "doc" ];
 
             nativeBuildInputs = nativeBuildDeps
-                                ++ (lib.optionals stdenv.cc.isClang [ pkgs.bear pkgs.clang-tools ]);
+                                #++ (lib.optionals stdenv.cc.isClang [ pkgs.bear pkgs.clang-tools ])
+                                ++ [ mini_compile_commands.package ];
 
             buildInputs = buildDeps ++ propagatedDeps
               ++ awsDeps ++ checkDeps ++ internalApiDocsDeps;
@@ -725,7 +731,7 @@
             (makeShells "static" nixpkgsFor.${system}.static) //
             (forAllCrossSystems (crossSystem: let pkgs = nixpkgsFor.${system}.cross.${crossSystem}; in makeShell pkgs pkgs.stdenv)) //
             {
-              default = self.devShells.${system}.native-stdenvPackages;
+              default = self.devShells.${system}.native-clang13StdenvPackages;
             }
         );
   };
